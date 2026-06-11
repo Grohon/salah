@@ -38,7 +38,6 @@ export function PrayerCard({ prayer, sunriseTime }: PrayerCardProps) {
         hover={!isCompleted}
         className={cn(
           'flex h-full flex-col items-center gap-3 px-4 py-5 text-center overflow-hidden transition-all duration-300',
-          isCompleted && 'opacity-60',
           isNext && 'ring-1 ring-amber-500/30',
           isCurrent && 'ring-1 ring-emerald-500/30'
         )}
