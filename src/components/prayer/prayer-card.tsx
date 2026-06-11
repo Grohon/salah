@@ -17,9 +17,10 @@ const PRAYER_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
 
 interface PrayerCardProps {
   prayer: PrayerTimeData;
+  sunriseTime?: string;
 }
 
-export function PrayerCard({ prayer }: PrayerCardProps) {
+export function PrayerCard({ prayer, sunriseTime }: PrayerCardProps) {
   const Icon = PRAYER_ICONS[prayer.key] || CloudMoon;
   const isNext = prayer.isNext;
   const isCompleted = prayer.status === 'completed';
@@ -35,63 +36,65 @@ export function PrayerCard({ prayer }: PrayerCardProps) {
         glow={isNext ? 'gold' : 'none'}
         hover={!isCompleted}
         className={cn(
-          'relative flex items-center justify-between overflow-hidden transition-all duration-300',
+          'relative flex flex-col items-center gap-3 px-4 py-5 text-center overflow-hidden transition-all duration-300',
           isCompleted && 'opacity-40',
           isNext && 'ring-1 ring-amber-500/30',
           isCurrent && 'ring-1 ring-emerald-500/30'
         )}
       >
         {isNext && (
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent" />
         )}
         {isCurrent && (
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent" />
         )}
 
-        <div className="relative z-10 flex items-center gap-4">
-          <div
-            className={cn(
-              'flex h-12 w-12 items-center justify-center rounded-xl',
-              isNext && 'dark:bg-amber-500/10 bg-amber-100 dark:text-amber-400 text-amber-700',
-              isCurrent && 'bg-emerald-500/10 dark:text-emerald-400 text-emerald-700',
-              !isNext && !isCurrent && 'bg-muted/30 text-muted-foreground'
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </div>
-          <div>
-            <p
-              className={cn(
-                'text-lg font-semibold',
-                isNext && 'dark:text-amber-400 text-amber-700',
-                isCurrent && 'dark:text-emerald-400 text-emerald-700'
-              )}
-            >
-              {prayer.name}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {isNext && 'Next Prayer'}
-              {isCurrent && 'Current Prayer'}
-              {isCompleted && 'Completed'}
-              {!isNext && !isCurrent && !isCompleted && 'Upcoming'}
-            </p>
-          </div>
+        <div
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-xl',
+            isNext && 'dark:bg-amber-500/10 bg-amber-100 dark:text-amber-400 text-amber-700',
+            isCurrent && 'bg-emerald-500/10 dark:text-emerald-400 text-emerald-700',
+            !isNext && !isCurrent && 'bg-muted/30 text-muted-foreground'
+          )}
+        >
+          <Icon className="h-5 w-5" />
         </div>
-
-        <div className="relative z-10 text-right">
+        <div>
           <p
             className={cn(
-              'text-2xl font-bold tracking-tight',
+              'text-sm font-semibold',
               isNext && 'dark:text-amber-400 text-amber-700',
               isCurrent && 'dark:text-emerald-400 text-emerald-700'
             )}
           >
-            {prayer.time}{prayer.endTime ? ` — ${prayer.endTime}` : ''}
+            {prayer.name}
           </p>
+          <p className="text-xs text-muted-foreground">
+            {isNext && 'Next'}
+            {isCurrent && 'Current'}
+            {isCompleted && 'Done'}
+            {!isNext && !isCurrent && !isCompleted && 'Upcoming'}
+          </p>
+        </div>
+
+        <div className="text-center">
+          <p
+            className={cn(
+              'text-lg font-bold tracking-tight',
+              isNext && 'dark:text-amber-400 text-amber-700',
+              isCurrent && 'dark:text-emerald-400 text-emerald-700'
+            )}
+          >
+            {prayer.time}
+          </p>
+          {prayer.endTime && (
+            <p className="text-xs text-muted-foreground/60">until {prayer.endTime}</p>
+          )}
+          {sunriseTime && (
+            <p className="text-xs text-muted-foreground/60">Sunrise {sunriseTime}</p>
+          )}
           {prayer.makruhTime && (
-            <p className="text-xs dark:text-red-400 text-red-700">
-              Makruh: {prayer.makruhTime}
-            </p>
+            <p className="text-xs dark:text-red-400 text-red-700">Makruh: {prayer.makruhTime}</p>
           )}
         </div>
       </GlassCard>

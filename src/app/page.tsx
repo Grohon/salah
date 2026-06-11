@@ -174,10 +174,16 @@ export default function HomePage() {
           {prayerTimes.length > 0 && (
             <motion.div variants={itemVariants} className="space-y-3">
               <h2 className="text-lg font-semibold text-foreground">Today&apos;s Prayer Times</h2>
-              <div className="grid gap-3">
-                {prayerTimes.map((prayer) => (
-                  <PrayerCard key={prayer.key} prayer={prayer} />
-                ))}
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+                {prayerTimes
+                  .filter(p => p.key !== 'sunrise' && p.key !== 'tahajjud')
+                  .map((prayer) => (
+                    <PrayerCard
+                      key={prayer.key}
+                      prayer={prayer}
+                      sunriseTime={prayer.key === 'fajr' ? prayerTimes.find(p => p.key === 'sunrise')?.time : undefined}
+                    />
+                  ))}
               </div>
             </motion.div>
           )}
