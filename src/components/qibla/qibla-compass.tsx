@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { GlassCard } from '@/components/shared/glass-card';
 import { useQibla } from '@/hooks/use-qibla';
-import { Loader2, Compass as CompassIcon, AlertTriangle } from 'lucide-react';
+import { Loader2, Compass as CompassIcon, Navigation } from 'lucide-react';
 import { getCompassDirection } from '@/lib/qibla';
 
 interface QiblaCompassProps {
@@ -11,167 +11,118 @@ interface QiblaCompassProps {
   longitude: number | null;
 }
 
-const SVG_SIZE = 400;
-const CX = SVG_SIZE / 2;
-const CY = SVG_SIZE / 2;
-const OUTER_R = 185;
-const INNER_R = 175;
-const TICK_OUTER = 175;
-const TICK_MAJOR_INNER = 150;
-const TICK_MINOR_INNER = 160;
-const LABEL_R = 142;
-const NEEDLE_LEN = 120;
+const S = 400;
+const C = S / 2;
 
-function polarX(r: number, angleDeg: number): number {
-  return CX + r * Math.cos(((angleDeg - 90) * Math.PI) / 180);
-}
-function polarY(r: number, angleDeg: number): number {
-  return CY + r * Math.sin(((angleDeg - 90) * Math.PI) / 180);
+function polar(r: number, deg: number) {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return { x: C + r * Math.cos(rad), y: C + r * Math.sin(rad) };
 }
 
-function CompassDial({ direction }: { direction: number }) {
+function CompassRose() {
   const ticks: React.ReactNode[] = [];
-  const labels: React.ReactNode[] = [];
-
   for (let a = 0; a < 360; a += 15) {
-    const major = a % 90 === 0;
-    const medium = a % 45 === 0;
-    const innerR = major ? TICK_MAJOR_INNER : medium ? 154 : TICK_MINOR_INNER;
+    const isCard = a % 90 === 0;
+    const isMid = a % 45 === 0;
+    const ri = isCard ? 148 : isMid ? 155 : 162;
+    const ro = 175;
+    const p1 = polar(ri, a);
+    const p2 = polar(ro, a);
     ticks.push(
       <line
-        key={`t-${a}`}
-        x1={polarX(innerR, a)}
-        y1={polarY(innerR, a)}
-        x2={polarX(TICK_OUTER, a)}
-        y2={polarY(TICK_OUTER, a)}
-        className={
-          major
-            ? 'stroke-foreground stroke-[2.5]'
-            : medium
-              ? 'stroke-muted-foreground/60 stroke-[2]'
-              : 'stroke-border stroke-[1]'
-        }
+        key={a}
+        x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
+        className={isCard ? 'stroke-foreground stroke-[2.5]' : isMid ? 'stroke-muted-foreground/60 stroke-[2]' : 'stroke-border stroke-[1]'}
       />
     );
   }
 
-  const cardinals: [number, string, boolean][] = [
+  const labels = [
     [0, 'N', true],
     [90, 'E', false],
     [180, 'S', false],
     [270, 'W', false],
-  ];
-  for (const [angle, text, isNorth] of cardinals) {
-    labels.push(
+  ] as const;
+  const labelEls = labels.map(([deg, text, isN]) => {
+    const p = polar(138, deg);
+    return (
       <text
-        key={`c-${angle}`}
-        x={polarX(LABEL_R, angle)}
-        y={polarY(LABEL_R, angle)}
+        key={text}
+        x={p.x} y={p.y}
         textAnchor="middle"
         dominantBaseline="central"
-        className={
-          isNorth
-            ? 'fill-red-500 dark:fill-red-400 text-[16px] font-bold'
-            : 'fill-muted-foreground text-[14px] font-bold'
-        }
+        className={isN ? 'fill-red-500 dark:fill-red-400 text-[16px] font-bold' : 'fill-muted-foreground text-[14px] font-bold'}
       >
         {text}
       </text>
     );
-  }
+  });
 
   return (
-    <svg viewBox={`0 0 ${SVG_SIZE} ${SVG_SIZE}`} className="h-full w-full select-none overflow-visible">
-      <defs>
-        <filter id="qibla-glow">
-          <feDropShadow dx="0" dy="0" stdDeviation="4" floodColor="currentColor" floodOpacity="0.5" />
-        </filter>
-        <filter id="needle-shadow">
-          <feDropShadow dx="1" dy="1" stdDeviation="2" floodOpacity="0.25" />
-        </filter>
-      </defs>
-
-      <circle
-        cx={CX} cy={CY} r={OUTER_R}
-        fill="none"
-        className="stroke-border stroke-[1.5]"
-      />
-
-      <circle
-        cx={CX} cy={CY} r={INNER_R}
-        fill="none"
-        className="stroke-border/50 stroke-[1]"
-      />
-
-      <circle
-        cx={CX} cy={CY} r={TICK_OUTER}
-        fill="none"
-        className="stroke-border/30 stroke-[0.5]"
-      />
-
+    <svg viewBox={`0 0 ${S} ${S}`} className="h-full w-full select-none overflow-visible">
+      <circle cx={C} cy={C} r={183} fill="none" className="stroke-border stroke-[1.5]" />
+      <circle cx={C} cy={C} r={175} fill="none" className="stroke-border/40 stroke-[1]" />
       {ticks}
-      {labels}
-
-      <g transform={`rotate(${direction}, ${CX}, ${CY})`}>
-        <line
-          x1={CX} y1={CY}
-          x2={CX} y2={CY - NEEDLE_LEN}
-          className="stroke-amber-500 dark:stroke-amber-400 stroke-[3]"
-          strokeLinecap="round"
-          filter="url(#qibla-glow)"
-        />
-        <polygon
-          points={`${CX - 8},${CY - NEEDLE_LEN + 4} ${CX},${CY - NEEDLE_LEN - 8} ${CX + 8},${CY - NEEDLE_LEN + 4}`}
-          className="fill-amber-500 dark:fill-amber-400"
-          filter="url(#qibla-glow)"
-        />
-        <circle
-          cx={CX} cy={CY - NEEDLE_LEN - 1} r={2}
-          className="fill-amber-500 dark:fill-amber-400"
-        />
-      </g>
-
-      <circle
-        cx={CX} cy={CY} r={8}
-        className="fill-emerald-500 dark:fill-emerald-400"
-      />
-      <circle
-        cx={CX} cy={CY} r={3}
-        className="fill-white/80 dark:fill-white/80"
-      />
+      {labelEls}
     </svg>
   );
 }
 
-function HeadingIndicator() {
+function HeadingNeedle({ angle }: { angle: number }) {
   return (
-    <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2">
-      <div className="flex flex-col items-center">
-        <svg width="16" height="20" viewBox="0 0 16 20" className="drop-shadow-md">
-          <polygon
-            points="8,20 0,0 16,0"
-            className="fill-emerald-500 dark:fill-emerald-400"
-          />
-        </svg>
-        <span className="mt-0.5 whitespace-nowrap text-[10px] font-bold tracking-tight text-muted-foreground">
-          FACING
-        </span>
-      </div>
-    </div>
+    <motion.div
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+      animate={{ rotate: angle }}
+      transition={{ type: 'spring', stiffness: 60, damping: 20, mass: 0.3 }}
+      style={{ originX: '50%', originY: '50%' }}
+    >
+      <svg width="16" height="120" viewBox="0 0 16 120" className="drop-shadow-md">
+        <polygon points="8,4 4,60 8,54 12,60" className="fill-red-500 dark:fill-red-400" />
+        <polygon points="4,60 8,116 12,60 8,54" className="fill-gray-300 dark:fill-gray-600" />
+        <circle cx="8" cy="57" r="3" className="fill-white dark:fill-gray-900" />
+      </svg>
+    </motion.div>
+  );
+}
+
+function QiblaNeedle({ angle }: { angle: number }) {
+  return (
+    <motion.div
+      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+      animate={{ rotate: angle }}
+      transition={{ type: 'spring', stiffness: 60, damping: 18, mass: 0.4 }}
+      style={{ originX: '50%', originY: '50%' }}
+    >
+      <svg width="20" height="130" viewBox="0 0 20 130" className="drop-shadow-lg">
+        <defs>
+          <filter id="qibla-glow">
+            <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="currentColor" floodOpacity="0.4" />
+          </filter>
+        </defs>
+        <g filter="url(#qibla-glow)" className="text-amber-500 dark:text-amber-400">
+          <polygon points="10,4 5,66 10,58 15,66" fill="currentColor" />
+          <polygon points="5,66 10,126 15,66 10,58" className="fill-gray-400 dark:fill-gray-500" />
+          <circle cx="10" cy="62" r="4" className="fill-white dark:fill-gray-900" />
+          <circle cx="10" cy="62" r="2" fill="currentColor" />
+        </g>
+      </svg>
+    </motion.div>
   );
 }
 
 export function QiblaCompass({ latitude, longitude }: QiblaCompassProps) {
-  const { direction, heading, smoothedHeading, loading, error, absolute } = useQibla(
+  const { direction, heading, loading, error } = useQibla(
     latitude,
     longitude
   );
 
   const active = !loading && heading !== null;
-  const rot = smoothedHeading !== null ? -smoothedHeading : 0;
+  const qiblaAngle = heading !== null
+    ? (direction - heading + 360) % 360
+    : direction;
+  const headingAngle = heading !== null ? -heading : 0;
 
   const dimClass = 'dark:text-emerald-400 text-emerald-700';
-  const mutedDimClass = 'dark:text-amber-400/70 text-amber-700/70';
 
   return (
     <GlassCard className="flex flex-col items-center p-8 md:p-12">
@@ -198,49 +149,53 @@ export function QiblaCompass({ latitude, longitude }: QiblaCompassProps) {
       )}
 
       {(!loading || active) && (
-        <>
-          <div className="relative flex items-center justify-center">
-            <div className="relative h-72 w-72 md:h-80 md:w-80">
-              <motion.div
-                className="h-full w-full"
-                animate={{ rotate: rot }}
-                transition={{ type: 'spring', stiffness: 40, damping: 20, mass: 0.5 }}
-              >
-                <CompassDial direction={direction} />
-              </motion.div>
+        <div className="relative flex flex-col items-center justify-center">
+          <div className="relative h-72 w-72 md:h-80 md:w-80">
+            <CompassRose />
 
-              {active && <HeadingIndicator />}
+            {active && <HeadingNeedle angle={headingAngle} />}
+
+            <QiblaNeedle angle={qiblaAngle} />
+
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="h-5 w-5 rounded-full bg-emerald-500 dark:bg-emerald-400 shadow-lg shadow-emerald-500/40 z-10 relative" />
             </div>
           </div>
 
-          {active && !absolute && (
-            <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
-              <AlertTriangle className="h-3 w-3" />
-              <span>Relative heading — accuracy may vary by device orientation.</span>
+          <div className="mt-6 grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-xs text-muted-foreground">Qibla</p>
+              <p className={`text-xl font-bold ${dimClass}`}>
+                {direction.toFixed(1)}&deg;
+              </p>
             </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Direction</p>
+              <p className={`text-xl font-bold ${dimClass}`}>
+                {getCompassDirection(direction)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{active ? 'Heading' : 'Bearing'}</p>
+              <p className="text-xl font-bold text-foreground">
+                {active ? `${heading!.toFixed(0)}°` : `${direction.toFixed(0)}°`}
+              </p>
+            </div>
+          </div>
+
+          {active && (
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              Turn until the gold arrow points up
+            </p>
           )}
-        </>
-      )}
 
-      <div className="mt-6 grid grid-cols-2 gap-6 text-center">
-        <div>
-          <p className="text-sm text-muted-foreground">Qibla Direction</p>
-          <p className={`text-3xl font-bold ${dimClass}`}>
-            {direction.toFixed(1)}&deg;
-          </p>
+          {!active && heading === null && !loading && (
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Navigation className="h-3 w-3" />
+              Point your phone north to activate the compass
+            </p>
+          )}
         </div>
-        <div>
-          <p className="text-sm text-muted-foreground">From North</p>
-          <p className={`text-3xl font-bold ${dimClass}`}>
-            {getCompassDirection(direction)}
-          </p>
-        </div>
-      </div>
-
-      {active && (
-        <p className={`mt-2 text-xs ${mutedDimClass}`}>
-          Rotate your body until the gold arrow points up to face Qibla
-        </p>
       )}
     </GlassCard>
   );

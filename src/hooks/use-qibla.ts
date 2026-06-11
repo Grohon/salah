@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { calculateQiblaDirection } from '@/lib/qibla';
 
 export interface UseQiblaReturn {
   direction: number;
   heading: number | null;
-  smoothedHeading: number | null;
   loading: boolean;
   error: string | null;
   absolute: boolean;
@@ -20,14 +19,6 @@ type DeviceOrientationEventConstructor = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<'granted' | 'denied' | 'default'>;
 };
 
-function lerpAngle(current: number, target: number, factor: number): number {
-  let diff = target - current;
-  if (diff > 180) diff -= 360;
-  if (diff < -180) diff += 360;
-  const next = current + diff * factor;
-  return ((next % 360) + 360) % 360;
-}
-
 export function useQibla(
   userLat: number | null,
   userLng: number | null
@@ -38,10 +29,6 @@ export function useQibla(
     supportsOrientation() ? null : 'Device orientation not supported by your browser.'
   );
   const [absolute, setAbsolute] = useState(false);
-
-  const smoothedRef = useRef<number | null>(null);
-  const [smoothedHeading, setSmoothedHeading] = useState<number | null>(null);
-  const rafRef = useRef<number>(0);
 
   const direction = (userLat !== null && userLng !== null)
     ? calculateQiblaDirection(userLat, userLng)
@@ -71,7 +58,7 @@ export function useQibla(
       setLoading(false);
     };
 
-    window.addEventListener('deviceorientation', handleOrientation);
+    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
 
     const timeout = setTimeout(() => {
       setLoading(false);
@@ -108,27 +95,5 @@ export function useQibla(
     }
   }, [startListening]);
 
-  useEffect(() => {
-    if (heading === null) return;
-
-    let running = true;
-    const tick = () => {
-      if (!running) return;
-      if (smoothedRef.current === null) {
-        smoothedRef.current = heading;
-      } else {
-        smoothedRef.current = lerpAngle(smoothedRef.current, heading, 0.2);
-      }
-      setSmoothedHeading(smoothedRef.current);
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      running = false;
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [heading]);
-
-  return { direction, heading, smoothedHeading, loading, error, absolute };
+  return { direction, heading, loading, error, absolute };
 }
