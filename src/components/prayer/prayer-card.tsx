@@ -31,13 +31,14 @@ export function PrayerCard({ prayer, sunriseTime }: PrayerCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      className="h-full"
     >
       <GlassCard
         glow={isNext ? 'gold' : 'none'}
         hover={!isCompleted}
         className={cn(
-          'relative flex flex-col items-center gap-3 px-4 py-5 text-center overflow-hidden transition-all duration-300',
-          isCompleted && 'opacity-40',
+          'flex h-full flex-col items-center gap-3 px-4 py-5 text-center overflow-hidden transition-all duration-300',
+          isCompleted && 'opacity-60',
           isNext && 'ring-1 ring-amber-500/30',
           isCurrent && 'ring-1 ring-emerald-500/30'
         )}
@@ -59,12 +60,13 @@ export function PrayerCard({ prayer, sunriseTime }: PrayerCardProps) {
         >
           <Icon className="h-5 w-5" />
         </div>
-        <div>
+        <div className="flex-1 flex flex-col justify-center">
           <p
             className={cn(
               'text-sm font-semibold',
               isNext && 'dark:text-amber-400 text-amber-700',
-              isCurrent && 'dark:text-emerald-400 text-emerald-700'
+              isCurrent && 'dark:text-emerald-400 text-emerald-700',
+              isCompleted && 'text-muted-foreground'
             )}
           >
             {prayer.name}
@@ -82,16 +84,21 @@ export function PrayerCard({ prayer, sunriseTime }: PrayerCardProps) {
             className={cn(
               'text-lg font-bold tracking-tight',
               isNext && 'dark:text-amber-400 text-amber-700',
-              isCurrent && 'dark:text-emerald-400 text-emerald-700'
+              isCurrent && 'dark:text-emerald-400 text-emerald-700',
+              isCompleted && 'dark:text-muted-foreground text-muted-foreground'
             )}
           >
             {prayer.time}
           </p>
           {prayer.endTime && (
-            <p className="text-xs text-muted-foreground/60">until {prayer.endTime}</p>
+            <p className={cn('text-xs', isCompleted ? 'text-muted-foreground/70' : 'text-muted-foreground/60')}>
+              until {prayer.endTime}
+            </p>
           )}
           {sunriseTime && (
-            <p className="text-xs text-muted-foreground/60">Sunrise {sunriseTime}</p>
+            <p className={cn('text-xs', isCompleted ? 'text-muted-foreground/70' : 'text-muted-foreground/60')}>
+              Sunrise {sunriseTime}
+            </p>
           )}
           {prayer.makruhTime && (
             <p className="text-xs dark:text-red-400 text-red-700">Makruh: {prayer.makruhTime}</p>
