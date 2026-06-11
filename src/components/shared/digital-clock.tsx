@@ -12,7 +12,7 @@ export function DigitalClock({ className, format = '24h' }: DigitalClockProps) {
   const { formattedTime, formatted12 } = useClock();
 
   return (
-    <div className={cn('tabular-nums tracking-wider', className)}>
+    <div className={cn('tracking-wider tabular-nums text-5xl font-bold md:text-6xl', className)}>
       {format === '24h' ? formattedTime : formatted12}
     </div>
   );

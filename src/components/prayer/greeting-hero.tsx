@@ -115,7 +115,7 @@ export function GreetingHero({ location, hijriDate, gregorianDate, onChangeLocat
         className="mt-5"
       >
         <DigitalClock
-          className="tabular-nums text-5xl font-bold text-muted-foreground md:text-6xl"
+          className="text-white"
           format="12h"
         />
       </motion.div>
