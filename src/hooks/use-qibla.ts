@@ -59,7 +59,7 @@ export function useQibla(
         headingValue = webkitEvent.webkitCompassHeading;
         isAbsolute = true;
       } else if (event.alpha !== null && event.alpha !== undefined) {
-        headingValue = event.absolute ? event.alpha : 360 - event.alpha;
+        headingValue = (360 - event.alpha) % 360;
         isAbsolute = !!event.absolute;
       }
 
