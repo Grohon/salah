@@ -78,6 +78,41 @@ Build a production-ready Muslim Prayer Times web application that:
 - **Glassy & Layered** — glassmorphism cards with depth via shadows and backdrop-blur
 - **Responsive** — mobile-first; tablet and desktop progressively enhance
 
+## Progress
+
+### Completed — Full Audit Flags
+
+| # | Finding | Status |
+|---|---------|--------|
+| H1 | `parseTime` guards undefined input | ✅ |
+| M1 | `::selection` contrast (`/80` → `text-emerald-700`) | ✅ |
+| M2 | `ctx.scale` accumulates → `setTransform` | ✅ |
+| M3 | Particles run off-screen → IntersectionObserver | ✅ |
+| M4 | Calendar re-fetches same date → in-memory `Map` cache | ✅ |
+| M5 | `Math.round` days-until → `Math.ceil` capped at 0 | ✅ |
+| Low | Rate limiting → `proxy.ts` (30 req/min/IP on `/api/*`) | ✅ |
+| Low | `formatTimeStrTo12h` duplicated logic → delegates to `formatTo12h` | ✅ |
+| Low | Hardcoded `bg-emerald-600` → `variant="default"` | ✅ |
+| Low | Reverse geo lat/lng validation → range check | ✅ |
+| Low | `endTime` now 1 min before next prayer start | ✅ |
+| — | Karachi method (1) default, Hanafi, Tahajjud client-side | ✅ |
+| — | `src/middleware.ts` → `src/proxy.ts` (Next.js 16 migration) | ✅ |
+
+### Not Actioned
+
+| # | Reason |
+|---|--------|
+| M6 (test suite) | Needs framework decision (Vitest/Jest) |
+| M7 (`className="dark"`) | Intentional dark-first design |
+| `as` casts (3 files) | No lint rule flags them; TypeScript can't verify runtime shapes |
+
+### Key Decisions
+
+- **endTime**: Each prayer's valid window is `[start, next_start - 1min]` to avoid overlap
+- **Rate limiting**: 30 req/min/IP in-memory, no external store needed for single-instance deploy
+- **`proxy.ts`**: Next.js 16 renamed middleware convention; export must be named `proxy`
+- **Dual-theme contrast**: All hardcoded colors use `dark:text-XXX-400 text-XXX-700` pattern; verify ≥4.5:1 in both themes
+
 ## Deployment Requirements
 
 - Build must pass `npm run build` with no errors

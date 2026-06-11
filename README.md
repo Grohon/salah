@@ -15,7 +15,8 @@ Accurate prayer times with automatic location detection, premium glassmorphism U
 - **Notifications** — Configurable browser reminders before each prayer
 - **Dual Theme** — Dark-first with full light mode WCAG AA contrast
 - **PWA Ready** — Manifest, service worker, offline-capable
-- **Security** — CSP, HSTS, XFO, input validation on all API routes
+- **Security** — CSP, HSTS, XFO, rate limiting, input validation on all API routes
+- **Caching** — In-memory calendar date cache, CDN-friendly API proxy headers
 
 ## Getting Started
 
@@ -47,7 +48,7 @@ npm run lint
 
 | Category | Score |
 |----------|-------|
-| Security | 8/10 |
-| Maintainability | 7/10 |
+| Security | 9/10 |
+| Maintainability | 8/10 |
 | Performance | 8/10 |
 | Overall Risk | Low |
