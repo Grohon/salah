@@ -1,0 +1,21 @@
+{
+  "name": "Salah — Prayer Times, Qibla & Islamic Calendar",
+  "short_name": "Salah",
+  "description": "Prayer Times, Qibla & Islamic Calendar — Accurate salah times based on your location.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["lifestyle", "religion"],
+  "lang": "en",
+  "dir": "ltr"
+}
