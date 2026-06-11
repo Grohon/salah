@@ -7,11 +7,10 @@ export interface UseQiblaReturn {
   direction: number;
   heading: number | null;
   loading: boolean;
-  error: string | null;
-  absolute: boolean;
+  sensorStatus: 'supported' | 'unsupported' | 'denied' | 'timeout' | 'active';
 }
 
-function supportsOrientation(): boolean {
+function isSupported(): boolean {
   return typeof window !== 'undefined' && 'DeviceOrientationEvent' in window;
 }
 
@@ -19,62 +18,59 @@ type DeviceOrientationEventConstructor = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<'granted' | 'denied' | 'default'>;
 };
 
+const INIT_SUPPORTED = isSupported();
+
 export function useQibla(
   userLat: number | null,
   userLng: number | null
 ): UseQiblaReturn {
   const [heading, setHeading] = useState<number | null>(null);
-  const [loading, setLoading] = useState(() => supportsOrientation());
-  const [error, setError] = useState<string | null>(() =>
-    supportsOrientation() ? null : 'Device orientation not supported by your browser.'
+  const [loading, setLoading] = useState(INIT_SUPPORTED);
+  const [sensorStatus, setSensorStatus] = useState<UseQiblaReturn['sensorStatus']>(
+    INIT_SUPPORTED ? 'supported' : 'unsupported'
   );
-  const [absolute, setAbsolute] = useState(false);
 
   const direction = (userLat !== null && userLng !== null)
     ? calculateQiblaDirection(userLat, userLng)
     : 0;
 
   const startListening = useCallback(() => {
-    let orientationReceived = false;
+    let received = false;
 
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      let headingValue: number | null = null;
-      let isAbsolute = false;
+    const handler = (event: DeviceOrientationEvent) => {
+      let value: number | null = null;
 
       const webkitEvent = event as DeviceOrientationEvent & { webkitCompassHeading?: number };
       if (webkitEvent.webkitCompassHeading !== undefined && webkitEvent.webkitCompassHeading !== null) {
-        headingValue = webkitEvent.webkitCompassHeading;
-        isAbsolute = true;
+        value = webkitEvent.webkitCompassHeading;
       } else if (event.alpha !== null && event.alpha !== undefined) {
-        headingValue = (360 - event.alpha) % 360;
-        isAbsolute = !!event.absolute;
+        value = (360 - event.alpha) % 360;
       }
 
-      if (headingValue !== null) {
-        setHeading(headingValue);
-        setAbsolute(isAbsolute);
-        orientationReceived = true;
+      if (value !== null) {
+        setHeading(value);
+        setSensorStatus('active');
+        received = true;
       }
       setLoading(false);
     };
 
-    window.addEventListener('deviceorientation', handleOrientation, { passive: true });
+    window.addEventListener('deviceorientation', handler, { passive: true });
 
-    const timeout = setTimeout(() => {
+    setTimeout(() => {
       setLoading(false);
-      if (!orientationReceived) {
-        setError('No compass data received. Ensure your device has a magnetometer.');
+      if (!received) {
+        setSensorStatus('timeout');
       }
     }, 8000);
 
     return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-      clearTimeout(timeout);
+      window.removeEventListener('deviceorientation', handler);
     };
   }, []);
 
   useEffect(() => {
-    if (!supportsOrientation()) return;
+    if (!INIT_SUPPORTED) return;
 
     const Constructor = DeviceOrientationEvent as unknown as DeviceOrientationEventConstructor;
 
@@ -83,17 +79,17 @@ export function useQibla(
         .then((state) => {
           if (state === 'granted') return startListening();
           setLoading(false);
-          setError('Permission denied. Enable motion sensors in your browser settings.');
+          setSensorStatus('denied');
           return undefined;
         })
         .catch(() => {
           setLoading(false);
-          setError('Failed to request sensor permission.');
+          setSensorStatus('denied');
         });
     } else {
       return startListening();
     }
   }, [startListening]);
 
-  return { direction, heading, loading, error, absolute };
+  return { direction, heading, loading, sensorStatus };
 }
