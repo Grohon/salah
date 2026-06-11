@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { calculateQiblaDirection } from '@/lib/qibla';
 
 export interface UseQiblaReturn {
@@ -18,23 +18,26 @@ type DeviceOrientationEventConstructor = typeof DeviceOrientationEvent & {
   requestPermission?: () => Promise<'granted' | 'denied' | 'default'>;
 };
 
-const INIT_SUPPORTED = isSupported();
-
 export function useQibla(
   userLat: number | null,
   userLng: number | null
 ): UseQiblaReturn {
   const [heading, setHeading] = useState<number | null>(null);
-  const [loading, setLoading] = useState(INIT_SUPPORTED);
-  const [sensorStatus, setSensorStatus] = useState<UseQiblaReturn['sensorStatus']>(
-    INIT_SUPPORTED ? 'supported' : 'unsupported'
+  const [loading, setLoading] = useState(() => isSupported());
+  const [sensorStatus, setSensorStatus] = useState<'supported' | 'unsupported' | 'denied' | 'timeout' | 'active'>(
+    () => isSupported() ? 'supported' : 'unsupported'
   );
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const handlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
 
   const direction = (userLat !== null && userLng !== null)
     ? calculateQiblaDirection(userLat, userLng)
     : 0;
 
-  const startListening = useCallback(() => {
+  useEffect(() => {
+    if (!isSupported()) return;
+
     let received = false;
 
     const handler = (event: DeviceOrientationEvent) => {
@@ -55,41 +58,51 @@ export function useQibla(
       setLoading(false);
     };
 
-    window.addEventListener('deviceorientation', handler, { passive: true });
+    handlerRef.current = handler;
 
-    setTimeout(() => {
-      setLoading(false);
-      if (!received) {
-        setSensorStatus('timeout');
-      }
-    }, 8000);
-
-    return () => {
-      window.removeEventListener('deviceorientation', handler);
+    const startTimeout = () => {
+      timeoutRef.current = setTimeout(() => {
+        setLoading(false);
+        if (!received) {
+          setSensorStatus('timeout');
+        }
+      }, 8000);
     };
-  }, []);
 
-  useEffect(() => {
-    if (!INIT_SUPPORTED) return;
+    const listen = () => {
+      window.addEventListener('deviceorientation', handler, { passive: true });
+      startTimeout();
+    };
 
     const Constructor = DeviceOrientationEvent as unknown as DeviceOrientationEventConstructor;
 
     if (typeof Constructor.requestPermission === 'function') {
       Constructor.requestPermission()
         .then((state) => {
-          if (state === 'granted') return startListening();
-          setLoading(false);
-          setSensorStatus('denied');
-          return undefined;
+          if (state === 'granted') {
+            listen();
+          } else {
+            setLoading(false);
+            setSensorStatus('denied');
+          }
         })
         .catch(() => {
           setLoading(false);
           setSensorStatus('denied');
         });
     } else {
-      return startListening();
+      listen();
     }
-  }, [startListening]);
+
+    return () => {
+      if (handlerRef.current) {
+        window.removeEventListener('deviceorientation', handlerRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return { direction, heading, loading, sensorStatus };
 }

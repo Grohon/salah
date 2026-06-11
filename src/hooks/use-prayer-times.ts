@@ -183,20 +183,22 @@ export function usePrayerTimes(
       : null;
 
     prayerEntries.forEach((prayer) => {
-      const isNext = prayer.key === nextPrayerEntry.key;
       const isCurrent = currentPrayerEntry !== null && prayer.key === currentPrayerEntry.key;
+      const isNext = prayer.key === nextPrayerEntry.key && !isCurrent && prayer.timeDate > now;
 
       if (isCurrent) {
         prayer.status = 'current';
+        prayer.isNext = false;
       } else if (prayer.timeDate <= now) {
         prayer.status = 'completed';
+        prayer.isNext = false;
       } else if (isNext) {
         prayer.status = 'next';
+        prayer.isNext = true;
       } else {
         prayer.status = 'upcoming';
+        prayer.isNext = false;
       }
-
-      prayer.isNext = isNext;
     });
 
     const maghribDate = parseTime(timesData.timings.maghrib, timesData.timezone);
