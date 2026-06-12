@@ -69,23 +69,6 @@ function CompassRose() {
   );
 }
 
-function HeadingNeedle({ angle }: { angle: number }) {
-  return (
-    <motion.div
-      className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-      animate={{ rotate: angle }}
-      transition={{ type: 'spring', stiffness: 60, damping: 20, mass: 0.3 }}
-      style={{ originX: '50%', originY: '50%' }}
-    >
-      <svg width="16" height="120" viewBox="0 0 16 120" className="drop-shadow-md">
-        <polygon points="8,4 4,60 8,54 12,60" className="fill-red-500 dark:fill-red-400" />
-        <polygon points="4,60 8,116 12,60 8,54" className="fill-gray-300 dark:fill-gray-600" />
-        <circle cx="8" cy="57" r="3" className="fill-white dark:fill-gray-900" />
-      </svg>
-    </motion.div>
-  );
-}
-
 function QiblaNeedle({ angle }: { angle: number }) {
   return (
     <motion.div
@@ -147,8 +130,8 @@ export function QiblaCompass({ latitude, longitude }: QiblaCompassProps) {
   );
 
   const hasHeading = heading !== null;
+  const compassAngle = hasHeading ? -heading : 0;
   const qiblaAngle = direction;
-  const headingAngle = hasHeading ? -heading : 0;
 
   const dimClass = 'dark:text-emerald-400 text-emerald-700';
 
@@ -169,9 +152,14 @@ export function QiblaCompass({ latitude, longitude }: QiblaCompassProps) {
       {!loading && (
         <div className="flex flex-col items-center">
           <div className="relative h-72 w-72 md:h-80 md:w-80">
-            <CompassRose />
-
-            {hasHeading && <HeadingNeedle angle={headingAngle} />}
+            <motion.div
+              className="h-full w-full"
+              animate={{ rotate: compassAngle }}
+              transition={{ type: 'spring', stiffness: 60, damping: 20, mass: 0.3 }}
+              style={{ originX: '50%', originY: '50%' }}
+            >
+              <CompassRose />
+            </motion.div>
 
             <QiblaNeedle angle={qiblaAngle} />
 
