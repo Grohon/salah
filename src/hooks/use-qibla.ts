@@ -17,10 +17,10 @@ function isSupported(): boolean {
 
 function needsPermission(): boolean {
   if (typeof window === 'undefined') return false;
-  const Constructor = DeviceOrientationEvent as unknown as {
-    requestPermission?: () => Promise<'granted' | 'denied' | 'default'>;
+  const Ctor = DeviceOrientationEvent as unknown as {
+    requestPermission?: () => Promise<string>;
   };
-  return typeof Constructor.requestPermission === 'function';
+  return typeof Ctor.requestPermission === 'function';
 }
 
 export function useQibla(
@@ -28,56 +28,45 @@ export function useQibla(
   userLng: number | null
 ): UseQiblaReturn {
   const [heading, setHeading] = useState<number | null>(null);
-  const [loading, setLoading] = useState(() => {
-    if (!isSupported()) return false;
-    if (needsPermission()) return false;
-    return true;
+  const [loading, setLoading] = useState(() => isSupported() && !needsPermission());
+  const [sensorStatus, setSensorStatus] = useState<
+    'supported' | 'unsupported' | 'denied' | 'timeout' | 'active'
+  >(() => {
+    if (!isSupported()) return 'unsupported';
+    if (needsPermission()) return 'supported';
+    return 'supported';
   });
-  const [sensorStatus, setSensorStatus] = useState<'supported' | 'unsupported' | 'denied' | 'timeout' | 'active'>(
-    () => {
-      if (!isSupported()) return 'unsupported';
-      if (needsPermission()) return 'supported';
-      return 'supported';
-    }
-  );
 
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const handlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
-  const absoluteHandlerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
+  const cleanupRef = useRef<() => void>(() => {});
 
-  const direction = (userLat !== null && userLng !== null)
-    ? calculateQiblaDirection(userLat, userLng)
-    : 0;
+  const direction =
+    userLat !== null && userLng !== null
+      ? calculateQiblaDirection(userLat, userLng)
+      : 0;
 
   const startListening = useCallback(() => {
     let received = false;
 
-    const handleValue = (value: number) => {
+    const handleHeading = (raw: number) => {
+      const value = (360 - raw) % 360;
       setHeading(value);
       setSensorStatus('active');
       received = true;
       setLoading(false);
     };
 
-    const fallbackHandler = (event: DeviceOrientationEvent) => {
-      if (event.alpha !== null && event.alpha !== undefined) {
-        handleValue((360 - event.alpha) % 360);
+    const onOrientation = (e: DeviceOrientationEvent) => {
+      if (e.alpha !== null && e.alpha !== undefined) {
+        handleHeading(e.alpha);
       }
     };
 
-    const absoluteHandler = ((event: DeviceOrientationEvent) => {
-      if (event.alpha !== null && event.alpha !== undefined) {
-        handleValue((360 - event.alpha) % 360);
-      }
-    }) as EventListener;
+    const absHandler = onOrientation as EventListener;
+    const oriHandler = onOrientation as EventListener;
 
-    handlerRef.current = fallbackHandler;
-    absoluteHandlerRef.current = absoluteHandler;
-
-    const useAbsolute = 'ondeviceorientationabsolute' in window;
-    const target = useAbsolute ? 'deviceorientationabsolute' : 'deviceorientation';
-    const listener = useAbsolute ? absoluteHandler : fallbackHandler;
-    window.addEventListener(target, listener as EventListener, { passive: true });
+    window.addEventListener('deviceorientationabsolute', absHandler, { passive: true });
+    window.addEventListener('deviceorientation', oriHandler, { passive: true });
 
     timeoutRef.current = setTimeout(() => {
       setLoading(false);
@@ -85,16 +74,22 @@ export function useQibla(
         setSensorStatus('timeout');
       }
     }, 8000);
+
+    cleanupRef.current = () => {
+      window.removeEventListener('deviceorientationabsolute', absHandler);
+      window.removeEventListener('deviceorientation', oriHandler);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
   }, []);
 
   const requestPermission = useCallback(() => {
     if (!isSupported()) return;
 
     if (needsPermission()) {
-      const Constructor = DeviceOrientationEvent as unknown as {
+      const Ctor = DeviceOrientationEvent as unknown as {
         requestPermission: () => Promise<'granted' | 'denied' | 'default'>;
       };
-      Constructor.requestPermission()
+      Ctor.requestPermission()
         .then((state) => {
           if (state === 'granted') {
             startListening();
@@ -114,23 +109,12 @@ export function useQibla(
 
   useEffect(() => {
     if (!isSupported()) return;
-
-    if (needsPermission()) {
-      return;
-    }
+    if (needsPermission()) return;
 
     startListening();
 
     return () => {
-      if (absoluteHandlerRef.current) {
-        window.removeEventListener('deviceorientationabsolute', absoluteHandlerRef.current as EventListener);
-      }
-      if (handlerRef.current) {
-        window.removeEventListener('deviceorientation', handlerRef.current);
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      cleanupRef.current();
     };
   }, [startListening]);
 
