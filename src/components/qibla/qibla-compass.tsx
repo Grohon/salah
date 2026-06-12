@@ -147,9 +147,7 @@ export function QiblaCompass({ latitude, longitude }: QiblaCompassProps) {
   );
 
   const hasHeading = heading !== null;
-  const qiblaAngle = hasHeading
-    ? (direction - heading + 360) % 360
-    : direction;
+  const qiblaAngle = direction;
   const headingAngle = hasHeading ? -heading : 0;
 
   const dimClass = 'dark:text-emerald-400 text-emerald-700';
